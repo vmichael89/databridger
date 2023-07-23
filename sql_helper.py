@@ -174,10 +174,27 @@ class Database:
             return all_paths
 
     def _get_multi_rel_path(self, list_of_tables) -> List[List]:
-        pass
+        # init first path
+        sub_paths = [self._get_relationship_path(*list_of_tables[:2])]
+
+        # iterate over rest of tables in list
+        for table in list_of_tables[2:]:
+            distinct_tables = set(element for sublist in sub_paths for element in sublist)
+            next_sub_path = min([db._get_relationship_path(s, table) for s in distinct_tables], key=len)
+            sub_paths.append(next_sub_path)
+
+        return sub_paths
 
     def _get_merge_sequence_from_path(self, multi_relationship_path) -> List[List]:
-        pass
+        sequence = []
+        for sub_path in multi_relationship_path:
+            for left_table, right_table in zip(sub_path[:-1], sub_path[1:]):
+                next_mapping = self.columns_mapping[(self.columns_mapping["from_table"] == left_table) & (self.columns_mapping["to_table"] == right_table)]
+                if len(next_mapping) == 1:
+                    sequence.append(next_mapping.values.tolist()[0])
+                else:
+                    raise Exception(f"No mapping found between {left_table} and {right_table}")
+        return sequence
 
     def easy_merge(self, selected_columns_by_table) -> pd.DataFrame:
         """
@@ -194,12 +211,24 @@ class Database:
         value is a list of column names (str) of interest from that table.
         Example: {'table1': ['col1', 'col2'], 'table3': ['col1'], 'table6': ['col2', 'col5', 'col6']}
         """
-        multi_path = self._get_multi_rel_path(selected_columns_by_table.keys())
+        multi_path = self._get_multi_rel_path(list(selected_columns_by_table.keys()))
         merge_sequence = self._get_merge_sequence_from_path(multi_path)
-        df = self.tables[merge_sequence[0][0]]
+
+        df = None
         for from_table, from_column, to_table, to_column in merge_sequence:
-            df_to_merge = self.tables[to_table]
-            df.merge(df_to_merge, on=from_column)
+            df1 = self.tables[from_table].copy()
+            df1.columns = [f"{from_table}_" + col for col in df1.columns]
+            df2 = self.tables[to_table].copy()
+            df2.columns = [f"{to_table}_" + col for col in df2.columns]
+
+            if df is None:
+                df = pd.merge(df1, df2, left_on=f"{from_table}_{from_column}", right_on=f"{to_table}_{to_column}")
+            else:
+                df = pd.merge(df, df2, left_on=f"{from_table}_{from_column}", right_on=f"{to_table}_{to_column}")
+
+        columns_to_extract = [f"{key}_{val}" for key, val_list in selected_columns_by_table.items() for val in val_list]
+
+        return df[columns_to_extract]
 
 
 class QueryMaker:
@@ -293,3 +322,11 @@ if __name__ == "__main__":
     # Copy query strings insertable into RDBMS / get possible table_names from db.table_names
     # qm.profile(table_name, to_clipboard=True)
     # qm.statistics(table_name, to_clipboard=True)
+
+    df_merged = db.easy_merge({
+        "film": ["title", "rental_duration"],
+        "category": ["name"],
+        "payment": ["amount"],
+        "customer": ["customer_id"],
+        "city": ["city"],
+        "country": ["country"]})
