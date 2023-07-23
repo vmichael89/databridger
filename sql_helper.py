@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import List, Dict
 import psycopg2
 import pandas as pd
 import pyperclip
@@ -25,11 +25,11 @@ class Database:
             password="1234"
         )
 
-        self.info = self.get_info()
-        self.table_names = self.get_table_names()
-        self.tables = self.get_tables()
-        self.mapping = self.get_mapping()
-        self.table_mapping = dict(self.mapping[["from_table", "to_table"]].groupby("from_table")["to_table"].apply(list))
+        self.info = self._get_info()
+        self.table_names = self._get_table_names()
+        self.tables = self._get_tables()
+        self.columns_mapping = self._get_mapping()
+        self.table_mapping = dict(self.columns_mapping[["from_table", "to_table"]].groupby("from_table")["to_table"].apply(list))
 
     def query(self, prompt) -> pd.DataFrame:
         """
@@ -60,7 +60,7 @@ class Database:
 
         return df
 
-    def get_info(self) -> pd.DataFrame:
+    def _get_info(self) -> pd.DataFrame:
         """Fetches information about all columns in the database."""
 
         return self.query(
@@ -68,7 +68,7 @@ class Database:
             "FROM information_schema.columns"
         )
 
-    def get_table_names(self) -> pd.Series:
+    def _get_table_names(self) -> pd.Series:
         """Fetches a series of unique public table names excluding the views."""
 
         return self.query(
@@ -77,13 +77,13 @@ class Database:
             "WHERE table_schema='public' AND is_updatable='YES'"
         )['table_name'].drop_duplicates()
 
-    def get_tables(self) -> Dict[str, pd.DataFrame]:
+    def _get_tables(self) -> Dict[str, pd.DataFrame]:
         """Fetches all public tables in the database and returns them as a dictionary with their names as keys and
         their content as values in dataframe format."""
 
         return {table_name: self.query(f"SELECT * FROM {table_name}") for table_name in list(self.table_names)}
 
-    def get_mapping(self) -> pd.DataFrame:
+    def _get_mapping(self) -> pd.DataFrame:
         """
         Retrieves a DataFrame that maps foreign key relationships between tables in a PostgreSQL database.
 
@@ -99,7 +99,7 @@ class Database:
         Note: The function relies on system views in the information_schema to fetch the foreign key relationships.
 
         Returns:
-            pd.DataFrame: DataFrame mapping foreign key relationships between tables.
+            pd.DataFrame: DataFrame columns_mapping foreign key relationships between tables.
         """
 
         return self.query(
@@ -125,6 +125,81 @@ class Database:
             "WHERE A.table_schema = 'public'\n"
             "	AND C.constraint_type = 'FOREIGN KEY'\n"
             "ORDER BY from_table, from_column\n")
+
+    def _get_relationship_path(self, starting_table, ending_table, paths=None):
+        """
+        Retrieves the shortest path of foreign key relationships between two tables in a PostgreSQL database.
+
+        This function uses depth-first search to traverse the 'table_mapping' graph from 'starting_table' to 'ending_table'.
+        The search avoids cycles and upon reaching the 'ending_table', it records the path. After all paths are explored,
+        it returns the shortest one.
+
+        Parameters:
+        starting_table (str): The name of the starting table in the path.
+        ending_table (str): The name of the ending table in the path.
+        paths (list, optional): The current path during the recursion. Should not be provided during the initial call.
+
+        Returns:
+        list: The shortest path from 'starting_table' to 'ending_table', represented as a list of table names.
+              If no path is found, returns None.
+        """
+
+        # Initialize paths on first run
+        if paths is None:
+            paths = [starting_table]
+
+        # Initialize a variable to hold all possible paths
+        all_paths = []
+
+        # Go to every possibility from the current table
+        for next_table in self.table_mapping[starting_table]:
+
+            # If next_table is the target, we have found a path!
+            if next_table == ending_table:
+                all_paths.append(paths + [next_table])
+
+            # Don't go where you already have been
+            elif next_table not in paths:
+                # Rerun with next table
+                all_paths.extend(self._get_relationship_path(next_table, ending_table, paths + [next_table]))
+
+        # If this is the top level of recursion, find and return the shortest path
+        if paths == [starting_table]:
+            if not all_paths:
+                return None
+            return min(all_paths, key=len)
+
+        # If this is not the top level of recursion, just return all paths
+        else:
+            return all_paths
+
+    def _get_multi_rel_path(self, list_of_tables) -> List[List]:
+        pass
+
+    def _get_merge_sequence_from_path(self, multi_relationship_path) -> List[List]:
+        pass
+
+    def easy_merge(self, selected_columns_by_table) -> pd.DataFrame:
+        """
+        Merges multiple tables based on shortest relationship paths and returns selected columns from each table.
+
+        This function uses the `get_relationship_path` method to determine the shortest path
+        from 'table1' to 'table3' and then the shortest connection from that path to 'table6'.
+        Using these paths, the function then identifies the relationships (primary and foreign keys)
+        between the tables. It then merges all tables based on these keys, forming a large DataFrame.
+        From this DataFrame, it selects and returns the columns specified by the user.
+
+        Parameters:
+        selected_columns_by_table (dict): A dictionary where each key is a table name (str) and each
+        value is a list of column names (str) of interest from that table.
+        Example: {'table1': ['col1', 'col2'], 'table3': ['col1'], 'table6': ['col2', 'col5', 'col6']}
+        """
+        multi_path = self._get_multi_rel_path(selected_columns_by_table.keys())
+        merge_sequence = self._get_merge_sequence_from_path(multi_path)
+        df = self.tables[merge_sequence[0][0]]
+        for from_table, from_column, to_table, to_column in merge_sequence:
+            df_to_merge = self.tables[to_table]
+            df.merge(df_to_merge, on=from_column)
 
 
 class QueryMaker:
