@@ -180,8 +180,11 @@ class Database:
         # iterate over rest of tables in list
         for table in list_of_tables[2:]:
             distinct_tables = set(element for sublist in sub_paths for element in sublist)
-            next_sub_path = min([db._get_relationship_path(s, table) for s in distinct_tables], key=len)
-            sub_paths.append(next_sub_path)
+
+            # don't get next sub_path if table is already satisfied in distinct_tables
+            if not table in distinct_tables:
+                next_sub_path = min([db._get_relationship_path(s, table) for s in distinct_tables], key=len)
+                sub_paths.append(next_sub_path)
 
         return sub_paths
 
@@ -222,9 +225,18 @@ class Database:
             df2.columns = [f"{to_table}_" + col for col in df2.columns]
 
             if df is None:
+                print(f"{from_table} shape: {df1.shape}")
                 df = pd.merge(df1, df2, left_on=f"{from_table}_{from_column}", right_on=f"{to_table}_{to_column}")
+                print(f"{to_table} shape: {df2.shape} --> MERGED shape: {df.shape}")
             else:
                 df = pd.merge(df, df2, left_on=f"{from_table}_{from_column}", right_on=f"{to_table}_{to_column}")
+                print(f"{to_table} shape: {df2.shape} --> MERGED shape: {df.shape}")
+
+            # TODO: Performance issue with large datasets. Only keep columns of interest.
+
+            # catch error
+            if any(["_x" in c for c in df.columns]) & any(["_y" in c for c in  df.columns]):
+                print("PROBLEM. TABLE PAIR MERGED 2nd TIME")
 
         columns_to_extract = [f"{key}_{val}" for key, val_list in selected_columns_by_table.items() for val in val_list]
 
@@ -323,10 +335,13 @@ if __name__ == "__main__":
     # qm.profile(table_name, to_clipboard=True)
     # qm.statistics(table_name, to_clipboard=True)
 
+    # Easy merge example. Merges relevant tables and extracts desired columns
     df_merged = db.easy_merge({
-        "film": ["title", "rental_duration"],
+        "film": ["title", "rental_duration", "rental_rate", "length", "replacement_cost", "rating"],
+        "inventory": ["inventory_id"],
         "category": ["name"],
-        "payment": ["amount"],
+        "payment": ["amount", "payment_date"],
+        "rental": ["rental_date", "return_date"],
         "customer": ["customer_id"],
         "city": ["city"],
         "country": ["country"]})
