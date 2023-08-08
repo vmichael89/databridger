@@ -142,6 +142,23 @@ def remove_clutter(ax=None):
 
 
 def multibar(data, x, y, nsections=None, xorder=None, yorder="sum", title=None, bar_dict=dict(), line_dict=dict()):
+    """creates a horizontal bar plot with multiple bars for each category in the 'y' column. It uses the  pd.crosstab  function to create a cross-tabulation of the data. Here is a breakdown of the function:
+
+    Parameters:
+    -  data : The input DataFrame.
+    -  x : The column name representing the different sections of the bars.
+    -  y : The column name representing the categories for which bars are created.
+    -  nsections  (optional): The number of sections separated by vertical lines. If not provided, it is calculated based on the number of columns in the cross-tabulation plus one.
+    -  xorder  (optional): A list of section names in the desired order. The function finds the best match in the columns to determine the order.
+    -  yorder  (optional): The order in which categories are sorted. By default, it sorts rows from highest sum across columns to lowest.
+    -  title  (optional): The title of the plot.
+    -  bar_dict  (optional): A dictionary of keyword arguments to customize the appearance of the bars.
+    -  line_dict  (optional): A dictionary of keyword arguments to customize the appearance of the vertical lines.
+
+    Returns:
+        None
+    """
+
     cross_tab = pd.crosstab(data[y], data[x])
 
     # number of sections separated by vertical lines
@@ -185,6 +202,23 @@ def multibar(data, x, y, nsections=None, xorder=None, yorder="sum", title=None, 
 
 
 def bar100(data, x, y, nsections=None, xorder=None, yorder="sum", title=None, bar_dict=dict(), line_dict=dict()):
+    """creates a stacked horizontal bar plot where each bar represents 100% of the category. It uses the  pd.crosstab  function to create a cross-tabulation of the data. Here is a breakdown of the function:
+
+    Parameters:
+    -  data : The input DataFrame.
+    -  x : The column name representing the different sections of the bars.
+    -  y : The column name representing the categories for which bars are created.
+    -  nsections  (optional): The number of sections separated by vertical lines. If not provided, it is calculated based on the number of columns in the cross-tabulation plus one.
+    -  xorder  (optional): A list of section names in the desired order. The function finds the best match in the columns to determine the order.
+    -  yorder  (optional): The order in which categories are sorted. By default, it sorts rows from highest sum across columns to lowest.
+    -  title  (optional): The title of the plot.
+    -  bar_dict  (optional): A dictionary of keyword arguments to customize the appearance of the bars.
+    -  line_dict  (optional): A dictionary of keyword arguments to customize the appearance of the vertical lines.
+
+    Returns:
+        None
+    """
+
     cross_tab = pd.crosstab(data[y], data[x])
 
     # number of sections separated by vertical lines
