@@ -1,36 +1,85 @@
 # DataBridger
 
-DataBridger is a Python library designed to assist data analysts and scientists throughout every stage of the data analysis process. From loading data, whether it's from a CSV or SQL database, to cleaning, wrangling, and visualization, DataBridger has got you covered.
+DataBridger is a Python library meticulously crafted to bridge the journey from raw, unprocessed data to meaningful 
+insights for data analysts and scientists. Whether you're ingesting data from sources like CSV files or SQL databases, 
+or delving into the intricate tasks of cleaning, wrangling, and visualizing, DataBridger serves as your comprehensive 
+pathway to insights.
+
+Well, at least one day. DataBridger is still at the beginning of its development :D
 
 ## Features
 
-- **Unified Data Loading**: Load data seamlessly from CSV files or SQL databases.
+- **Data Loading and Interaction**: 
+  - PostgreSQL
+    - send queries
+    - construct query strings for various purposes and copy it to clipboard
+  - CSV file base
   
-- **Database Interactions**: Provides an interface to interact with SQL databases, execute queries, and fetch structured data.
+
+- **Data Cleaning**: 
+  - Run checks for mixed data types, missing values, and duplicates.
   
-- **Data Cleaning**: Functions to check for mixed data types, missing values, and duplicates in your data.
+
+- **Data Wrangling**: 
+  - create flag columns
   
-- **Data Wrangling**: Tools to reshape, transform, and merge data to make it analysis-ready.
-  
+
 - **Visualization Helpers**: Simplify and beautify your data plots.
+
+<br>
+
+**Coming soon**
+
+| Feature              | Description                                                                                                |
+|----------------------|------------------------------------------------------------------------------------------------------------|
+| (issue_tracker)      | Helps in documenting analysis process (cleaning, exploration, etc.)                                        |
+| (sql_query_export)   | Export SQL queries to Excel (already used in a script of another project)                                  |
+| (erd)                | Generate ERD (already used in a script of another project)                                                 |
+| (key_identification) | Better identification of inter-table relationships (primary/foreign keys) without relying on equal namings |
+| (easier_merge)       | Making easy merge easier in terms providing column names. Add an 'merge_all' option                        |
 
 ## Installation
 
-`pip install databridger`
+`git clone https://github.com/vmichael89/dataanalysis.git`
 
 
 ## Quick Start
 
-Here's a basic guide to get you started:
+Run simple check on your DataFrame
+```python
+import databridger.analysis as da
+da.clean.check_types(df)
+da.clean.check_duplicates(df)
+```
+
+Connect to CSV database
+```python
+from databridger import Database
+
+db_csv = Database.csv('./path_to_data_directory/')
+```
+
+Inspect tables
+
+```db_csv.tables```
+
+Connect to SQL database
+```python
+from databridger import Database
+
+db_sql = Database("dbname=database_name user=postgres password=your_password host=localhost port=5432", "postgres")
+```
+Construct queries for simple profiling and statistics
 
 ```python
 from databridger import Database
-# Load data from SQL database
-db = Database.sql(props={...})
-# Load data from CSV directory
-db_csv = Database.csv('./path_to_data_directory/')
+from databridger import QueryMaker
 
-# (Include more examples that cover the main functionalities of the library.)
+db_sql = Database("dbname=database_name user=postgres password=your_password host=localhost port=5432", "postgres")
+qm = QueryMaker(db_sql)
+
+print(qm.profile("customer"))  # also saves to clipboard
+
 ```
 ## Documentation
 
@@ -40,13 +89,11 @@ coming soon
 
 Tests are located in the `tests/` directory. Use the following command to run tests:
 
-```bash
-python -m unittest discover tests
-```
+TODO
 
 ## Contributing
 
-(If you're open to contributions, provide some guidance on how someone can contribute. Mention coding standards, PR process, etc.)
+Open for contributions.
 
 ## License
 
@@ -54,4 +101,4 @@ MIT
 
 ## Contact
 
-For any inquiries or issues, please [open an issue on GitHub](link-to-repo) or contact us at [vyndellmichael@gmail.com](mailto:vyndellmichael@gmail.com).
+For any inquiries or issues, please open an issue on GitHub or contact me at [vyndellmichael@gmail.com](mailto:vyndellmichael@gmail.com).
