@@ -1,22 +1,16 @@
-from helpers.database import Database
-from helpers.sql_query_maker import QueryMaker
+from databridger import Database
+from databridger import QueryMaker
 
 # Connect to an SQL database
-db_sql = Database.sql(props=dict(
-    host="localhost",
-    port=5432,
-    database="Rockbuster",
-    user="postgres",
-    password="1234"
-))
+db_sql = Database("dbname=Rockbuster user=postgres password=1234 host=localhost port=5432", "postgres")
+# also copies to clipboard
 
-# Alternatively, connect using CSV data
-# db_csv = Database.csv('./path_to_data_directory/')
-
-# Initialize the query maker for the database
+# Querymaker example
 qm = QueryMaker(db_sql)
+print()
+print(qm.profile("customer"))
 
-# Usage remains largely the same
+# Example of easy merge
 df_merged = db_sql.easy_merge({
     "film": ["title", "rental_duration", "rental_rate", "length", "replacement_cost", "rating"],
     "inventory": ["inventory_id"],
@@ -27,3 +21,11 @@ df_merged = db_sql.easy_merge({
     "city": ["city"],
     "country": ["country"]
 })
+
+# Read CSV database
+raw_data_folder = r"C:\Users\vynde\Documents\GitHub\brazilian-ecommerce-olist\data\raw"
+db_csv = Database(raw_data_folder)  # content stored in db_csv.tables
+print()
+print(db_csv.table_mapping)
+
+
