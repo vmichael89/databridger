@@ -183,7 +183,7 @@ class Database:
 
             # don't get next sub_path if table is already satisfied in distinct_tables
             if not table in distinct_tables:
-                next_sub_path = min([db._get_relationship_path(s, table) for s in distinct_tables], key=len)
+                next_sub_path = min([self._get_relationship_path(s, table) for s in distinct_tables], key=len)
                 sub_paths.append(next_sub_path)
 
         return sub_paths
