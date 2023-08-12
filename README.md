@@ -40,7 +40,7 @@ Well, at least one day. DataBridger is still at the beginning of its development
 
 ## Installation
 
-`git clone https://github.com/vmichael89/dataanalysis.git`
+`git clone https://github.com/vmichael89/databridger.git`
 
 
 ## Quick Start
